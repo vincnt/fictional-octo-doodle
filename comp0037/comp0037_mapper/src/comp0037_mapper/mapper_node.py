@@ -46,13 +46,13 @@ class MapperNode(object):
 
         # Create the occupancy grid map. This is the "raw" one from the sensor.
         self.occupancyGrid = OccupancyGrid(resp.map.info.width, resp.map.info.height, resp.map.info.resolution, 0.5)
-	self.occupancyGrid.setScale(mapScale)
-	self.occupancyGrid.scaleEmptyMap()
+        self.occupancyGrid.setScale(mapScale)
+        self.occupancyGrid.scaleEmptyMap()
                          
         # Create the delta occupancy grid map. This stores the difference since the last time the map was sent out
         self.deltaOccupancyGrid = OccupancyGrid(resp.map.info.width, resp.map.info.height, resp.map.info.resolution, 0)
-	self.deltaOccupancyGrid.setScale(mapScale)
-	self.deltaOccupancyGrid.scaleEmptyMap()
+        self.deltaOccupancyGrid.setScale(mapScale)
+        self.deltaOccupancyGrid.scaleEmptyMap()
 
         windowHeight = rospy.get_param('maximum_window_height_in_pixels', 600)
 
@@ -91,6 +91,9 @@ class MapperNode(object):
         self.mostRecentTwist = Twist();
         self.twistSubscriber = rospy.Subscriber('/robot0/cmd_vel', Twist, self.twistCallback, queue_size=1)
         self.laserSubscriber = rospy.Subscriber("robot0/laser_0", LaserScan, self.laserScanCallback, queue_size=1)
+
+        self.lastEntropyUpdate = 0
+        self.saveEntropy = False
 
     def odometryCallback(self, msg):
         self.dataCopyLock.acquire()

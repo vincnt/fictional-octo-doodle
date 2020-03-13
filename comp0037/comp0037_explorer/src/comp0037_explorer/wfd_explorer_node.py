@@ -95,6 +95,9 @@ class WfdExplorerNode(ExplorerNodeBase):
                 candidateGood = True 
                 destination = possible_destination
                 break
+        
+        if len(target_frontier) == 0:
+            destination = None
 
         return candidateGood, destination
 
