@@ -335,12 +335,42 @@ class MapperNode(object):
 
         return mapUpdateMessage
 
+    def getEntropyWithInterval(self, period=5):
+        secsDelta = rospy.get_time() - self.lastEntropyUpdate
+        if secsDelta >= period:
+            # update
+            mapVec = self.occupancyGrid.getGridAsVector()
+            H = self.computeEntropy(mapVec)
+            rospy.loginfo('Entropy of Occupancy Map: ' + str(H))
+
+            # save for plotting
+            if self.saveEntropy:
+                self.Hs += [H]
+
+            self.lastEntropyUpdate = rospy.get_time()
+
+    def computeEntropy(self, grid):
+        C_unkown = 0
+
+        for cell in grid:
+            if cell not in [0, 1]:
+                C_unkown += 1
+
+        return math.log(2) * C_unkown
         
     def run(self):
+	
         while not rospy.is_shutdown():
             self.updateVisualisation()
+	    self.getEntropyWithInterval()
             rospy.sleep(0.1)
+	
+	saveVector(self.Hs)
+
         
-  
+def saveVector(vec):
+    with open('./entropyVec.pkl', 'wb') as fp:
+        pkl.dump(vec, fp)
+    print('successfully saved entropy vector')
 
   
