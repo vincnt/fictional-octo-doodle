@@ -34,11 +34,12 @@ class ReactivePlannerController(PlannerControllerBase):
         # This methods needs to check if the current path, whose
         # waypoints are in self.currentPlannedPath, can still be
         # traversed
-                
-        # If the route is not viable any more, call
-        # self.controller.stopDrivingToCurrentGoal()
 
-        pass
+        for wp in self.currentPlannedPath.waypoints:
+            coords = wp.coords
+            if (self.occupancyGrid.getCell(coords[0], coords[1]) == 1):
+                print('collision at ' + str(coords) + '. Replanning path. ')
+                self.controller.stopDrivingToCurrentGoal()
     
     def driveToGoal(self, goal):
 
