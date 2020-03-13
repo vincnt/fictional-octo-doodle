@@ -26,6 +26,8 @@ class WfdExplorerNode(ExplorerNodeBase):
         return cells
 
     def updateFrontiers(self):
+        # Based off the pseudocode in the WFD paper
+
         og_classification = defaultdict(str)
         map_q = []
         start_pose = (0,0)
@@ -71,6 +73,7 @@ class WfdExplorerNode(ExplorerNodeBase):
 
         self.frontiers = new_frontiers
 
+        # If no more frontiers, returning False is supposed to end the program. 
         if len(new_frontiers) == 0:
             return False
 
@@ -79,12 +82,14 @@ class WfdExplorerNode(ExplorerNodeBase):
     def chooseNewDestination(self):
         candidateGood = False
 
+        # Search for the largest frontier
         target_frontier = []
         for frontier in self.frontiers:
             if len(frontier) > len(target_frontier):
                 target_frontier = frontier
         print('target frontier', target_frontier)
-        
+
+        # Pick a 'random' eligible cell in the target frontier 
         for possible_destination in target_frontier:
             if possible_destination not in self.blackList:
                 candidateGood = True 
