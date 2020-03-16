@@ -1,6 +1,7 @@
 import rospy
 import threading
 import math
+import pickle as pkl
 
 from comp0037_mapper.msg import *
 from comp0037_mapper.srv import *
@@ -8,11 +9,15 @@ from comp0037_reactive_planner_controller.srv import *
 from comp0037_reactive_planner_controller.occupancy_grid import OccupancyGrid
 from comp0037_reactive_planner_controller.grid_drawer import OccupancyGridDrawer
 from geometry_msgs.msg  import Twist
+from nav_msgs.msg import Odometry
+
 
 class ExplorerNodeBase(object):
 
     def __init__(self):
         rospy.init_node('explorer')
+        self.startTime = rospy.get_rostime().secs
+        self.TimeAndCoverageArray = []
 
         # Get the drive robot service
         rospy.loginfo('Waiting for service drive_to_goal')
@@ -50,9 +55,30 @@ class ExplorerNodeBase(object):
         while mapUpdate.initialMapUpdate.isPriorMap is True:
             self.kickstartSimulator()
             mapUpdate = mapRequestService(True)
-            
+    
         self.mapUpdateCallback(mapUpdate.initialMapUpdate)
-        
+
+        self.current_pose_subscriber = rospy.Subscriber('/robot0/odom', Odometry, self.current_pose_callback)
+        self.current_pose = Odometry()
+        self.current_position = (0,0)
+
+        self.startTime = rospy.get_rostime().secs
+
+    def current_pose_callback(self, data):
+        self.current_pose = data
+        pose = self.current_pose.pose.pose
+        position = pose.position
+        orientation = pose.orientation
+        self.current_position = position
+
+    def countKnownCells(self, grid):
+        countKnown = 0
+        for x in range(0, self.occupancyGrid.getWidthInCells()):
+            for y in range(0, self.occupancyGrid.getHeightInCells()):
+                if not self.checkIfCellIsUnknown(x, y, 0, 0):
+                    countKnown += 1
+        return countKnown
+
     def mapUpdateCallback(self, msg):
         rospy.loginfo("map update received")
         
@@ -63,8 +89,16 @@ class ExplorerNodeBase(object):
 
         # Update the grids
         self.occupancyGrid.updateGridFromVector(msg.occupancyGrid)
-        self.deltaOccupancyGrid.updateGridFromVector(msg.deltaOccupancyGrid)
         
+        current_known_count = self.countKnownCells(self.occupancyGrid)
+        # print('UPDATE occupancy grid {}'.format(current_known_count))
+
+        now = rospy.get_rostime().secs
+        # rospy.loginfo("Elapsted time %i", now - self.startTime)
+
+        # For plotting 
+        self.TimeAndCoverageArray += [(now-self.startTime, current_known_count)]
+
         # Update the frontiers
         self.updateFrontiers()
 
@@ -185,7 +219,6 @@ class ExplorerNodeBase(object):
                 # Special case. If this is the first time everything
                 # has started, stdr needs a kicking to generate laser
                 # messages. To do this, we get the robot to
-                
 
                 # Create a new robot waypoint if required
                 newDestinationAvailable, newDestination = self.explorer.chooseNewDestination()
@@ -196,20 +229,26 @@ class ExplorerNodeBase(object):
                     newDestinationInWorldCoordinates = self.explorer.occupancyGrid.getWorldCoordinatesFromCellCoordinates(newDestination)
                     attempt = self.explorer.sendGoalToRobot(newDestinationInWorldCoordinates)
                     self.explorer.destinationReached(newDestination, attempt)
+
+                    with open('./TimeAndCoveragePart3Temp_biggest.pkl', 'wb') as fp:
+                        pkl.dump(self.explorer.TimeAndCoverageArray, fp)
+                        print('successfully saved temp coverage vector')
+
                 else:
+                    with open('./TimeAndCoveragePart_3_biggest.pkl', 'wb') as fp:
+                        pkl.dump(self.explorer.TimeAndCoverageArray, fp)
+                        print('successfully saved coverage vector')
                     self.completed = True
                     
        
     def run(self):
-
         explorerThread = ExplorerNodeBase.ExplorerThread(self)
 
         keepRunning = True
         
         while (rospy.is_shutdown() is False) & (keepRunning is True):
-
             rospy.sleep(0.1)
-            
+
             self.updateVisualisation()
 
             if self.occupancyGrid is None:
@@ -221,6 +260,8 @@ class ExplorerNodeBase(object):
             if explorerThread.hasCompleted() is True:
                 explorerThread.join()
                 keepRunning = False
+        
+                
 
             
             

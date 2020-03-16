@@ -80,8 +80,9 @@ class WfdExplorerNode(ExplorerNodeBase):
         return True
 
     def chooseNewDestination(self):
+        # LARGEST FRONTIER METHOD
         candidateGood = False
-
+        destination = None
         # Search for the largest frontier
         target_frontier = []
         for frontier in self.frontiers:
@@ -100,6 +101,25 @@ class WfdExplorerNode(ExplorerNodeBase):
             destination = None
 
         return candidateGood, destination
+
+    # def chooseNewDestination(self):
+    #     # CLOSEST FRONTIER METHOD
+    #     nearestDistance = 100000
+    #     nearestFrontierPoint = None
+    #     candidateGood = False
+
+    #     for frontier in self.frontiers:
+    #         for point in frontier:
+    #             pos = self.current_position
+    #             distance = (pos.x - point[0])**2 + (pos.y - point[1])**2
+    #             if distance < nearestDistance:
+    #                 if point not in self.blackList:
+    #                     nearestFrontierPoint = point
+    #                     nearestDistance = distance
+    #                     candidateGood = True
+    #     destination = nearestFrontierPoint
+
+    #     return candidateGood, destination
 
     def destinationReached(self, goal, goalReached):
         if goalReached is False:
